@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Honey-Pot Chat Demo</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; height: 100vh; margin: 0; }
+        .chat-container { width: 400px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; margin-top: 20px; margin-bottom: 20px;}
+        .header { background: #6200ea; color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .messages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 10px; border-radius: 10px; max-width: 80%; line-height: 1.4; word-wrap: break-word; }
+        .user { align-self: flex-end; background: #e0f7fa; color: #006064; }
+        .bot { align-self: flex-start; background: #eeeeee; color: #333; }
+        .scam-alert { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 5px; font-size: 0.9em; text-align: center; border-radius: 5px; margin: 5px 0; display: none; }
+        .input-area { padding: 10px; border-top: 1px solid #eee; display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        button { padding: 10px 20px; background: #6200ea; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #3700b3; }
+        .metrics { font-size: 0.8em; color: #666; margin-top: 5px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">Grandma Betsy (Honey-Pot)</div>
+        <div id="messages" class="messages">
+            <div class="message bot">Hello dear! I was just about to make some tea. Who is this?</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const conversationId = "demo-" + Math.random().toString(36).substring(7);
+        const apiKey = "my-secret-key"; // Hardcoded for demo convenience
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Add user message
+            addMessage(text, 'user');
+            input.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        conversation_id: conversationId,
+                        message: text
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Show Scam Alert if detected
+                if (data.scam_detected) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'scam-alert';
+                    alertDiv.innerText = "⚠️ Scam Intent Detected! Engaged AI Agent.";
+                    document.getElementById('messages').appendChild(alertDiv);
+                }
+
+                addMessage(data.response, 'bot');
+                
+                if (data.engagement_metrics) {
+                   console.log("Metrics:", data.engagement_metrics);
+                }
+
+            } catch (error) {
+                addMessage("Error connecting to server.", 'bot');
+                console.error(error);
+            }
+        }
+
+        function addMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerText = text;
+            const msgs = document.getElementById('messages');
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+    </script>
+</body>
+</html>
