@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
+import uuid
 from dotenv import load_dotenv
 from core.manager import HoneyPotManager
 
@@ -47,7 +48,7 @@ def get_api_key(api_key_header: str = Security(api_key_header)):
 manager = HoneyPotManager()
 
 class ChatRequest(BaseModel):
-    conversation_id: str
+    conversation_id: Optional[str] = None
     message: str
 
 class EngagementMetrics(BaseModel):
@@ -72,7 +73,10 @@ async def chat_endpoint(request: ChatRequest, api_key: str = Depends(get_api_key
     Requires X-API-Key header.
     """
     try:
-        result = await manager.process_message(request.conversation_id, request.message)
+        # Auto-generate conversation_id if not provided
+        conversation_id = request.conversation_id or str(uuid.uuid4())
+        
+        result = await manager.process_message(conversation_id, request.message)
         # Extract metrics from metadata if available (it was put there by manager)
         metrics_data = result["metadata"].get("engagement_metrics")
         
