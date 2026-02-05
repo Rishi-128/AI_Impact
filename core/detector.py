@@ -18,7 +18,6 @@ class ScamDetector:
         if self.api_key:
             self.client = genai.Client(api_key=self.api_key)
 
-    @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=2, max=10))
     def _call_gemini(self, prompt):
         return self.client.models.generate_content(
             model=self.model_name,
