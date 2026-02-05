@@ -66,6 +66,17 @@ class ChatResponse(BaseModel):
 async def root():
     return {"status": "active", "system": "Agentic Honey-Pot"}
 
+@app.get("/debug")
+async def debug():
+    """Debug endpoint to check environment setup"""
+    import os
+    return {
+        "google_api_key_present": bool(os.getenv("GOOGLE_API_KEY")),
+        "google_api_key_length": len(os.getenv("GOOGLE_API_KEY", "")),
+        "service_api_key_present": bool(os.getenv("SERVICE_API_KEY")),
+        "python_version": os.sys.version
+    }
+
 @app.post("/chat")
 async def chat_endpoint(request: dict, api_key: str = Depends(get_api_key)):
     """
