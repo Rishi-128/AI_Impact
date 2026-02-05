@@ -66,26 +66,34 @@ class ChatResponse(BaseModel):
 async def root():
     return {"status": "active", "system": "Agentic Honey-Pot"}
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest, api_key: str = Depends(get_api_key)):
+@app.post("/chat")
+async def chat_endpoint(request: dict, api_key: str = Depends(get_api_key)):
     """
     Main endpoint for receiving scam messages.
     Requires X-API-Key header.
+    Accepts: {"message": "..."} or {"conversation_id": "...", "message": "..."}
     """
     try:
-        # Auto-generate conversation_id if not provided
-        conversation_id = request.conversation_id or str(uuid.uuid4())
+        # Extract message from request (flexible format)
+        message = request.get("message", "")
+        if not message:
+            raise HTTPException(status_code=422, detail="Missing 'message' field")
         
-        result = await manager.process_message(conversation_id, request.message)
+        # Auto-generate conversation_id if not provided
+        conversation_id = request.get("conversation_id") or str(uuid.uuid4())
+        
+        result = await manager.process_message(conversation_id, message)
         # Extract metrics from metadata if available (it was put there by manager)
         metrics_data = result["metadata"].get("engagement_metrics")
         
-        return ChatResponse(
-            scam_detected=result["scam_detected"],
-            response=result["response"],
-            metadata=result["metadata"],
-            engagement_metrics=metrics_data
-        )
+        return {
+            "scam_detected": result["scam_detected"],
+            "response": result["response"],
+            "metadata": result["metadata"],
+            "engagement_metrics": metrics_data
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
